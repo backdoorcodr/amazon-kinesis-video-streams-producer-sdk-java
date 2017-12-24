@@ -29,10 +29,12 @@ import com.github.sarxos.webcam.WebcamUtils;
 import com.github.sarxos.webcam.util.ImageUtils;
 import com.xuggle.xuggler.IStreamCoder;
 import org.jcodec.codecs.h264.H264Encoder;
+import org.jcodec.codecs.h264.H264Utils;
 import org.jcodec.common.model.ColorSpace;
 import org.jcodec.common.model.Picture;
 import org.jcodec.scale.*;
 import io.netty.buffer.ByteBuf;
+
 
 
 import com.xuggle.mediatool.IMediaWriter;
@@ -53,6 +55,11 @@ import org.jboss.netty.channel.group.DefaultChannelGroup;
 import org.geotoolkit.display3d.utils.TransformRGBtoYUV420;
 public class CameraFrameSource {
 	
+	
+	 /*
+    	private final List<ByteBuffer> spsList = new ArrayList<>();
+    	private final List<ByteBuffer> ppsList = new ArrayList<>();
+	  */
 		protected final IStreamCoder iStreamCoder = IStreamCoder.make(Direction.ENCODING, ICodec.ID.CODEC_ID_H264);
 		protected final IPacket iPacket = IPacket.make();
 		protected final ChannelGroup channelGroup = new DefaultChannelGroup();
@@ -140,26 +147,25 @@ public class CameraFrameSource {
     } 
     
     public ByteBuffer encodeImage(BufferedImage bi) throws IOException { 
-        Picture toEncode = null;
         
         int width = bi.getWidth();
         int height = bi.getHeight();
         
-    	if (toEncode == null) { 
-            toEncode = Picture.create(width, height, ColorSpace.YUV420); 
-        } 
+        Picture toEncode = Picture.create(width, height, ColorSpace.YUV420); 
+        
         final Transform transform =  new TransformRGBtoYUV420(0,0);
         
         ByteBuffer _out = null; 
         final H264Encoder encoder = new H264Encoder(); 
  
         // Perform conversion 
+        
+        int[][] duplication = toEncode.getData();
+        
         for (int i = 0; i < 3; i++) 
             Arrays.fill(toEncode.getData()[i], 0); 
-        Picture src = AWTUtil.fromBufferedImage(bi);
-        src.getPlaneData(0);
-        toEncode.getPlaneData(0);
-        transform.transform(src, toEncode); 
+        
+        transform.transform(AWTUtil.fromBufferedImage(bi), toEncode); 
  
         // Encode image into H.264 frame, the result is stored in '_out' buffer and return
         _out = ByteBuffer.allocate(width * height * 6); 
@@ -175,16 +181,9 @@ public class CameraFrameSource {
     private ByteBuffer createKinesisVideoFrameFromCamera(final long index) throws IOException {
 
     	BufferedImage image = webcam.getImage();
-    	ChannelBuffer channelBuffer;
     	
     	
 		try {
-			/* Object msg = h264Encoder.encode(image);
-			if (!msg.equals(null)) {
-				channelGroup.write(msg);
-				channelBuffer = (ChannelBuffer) msg;
-				return channelBuffer.toByteBuffer();
-			}*/
 			ByteBuffer resultant = encodeImage(image);
 			return resultant;
 			
