@@ -15,6 +15,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.*; 
+import org.jcodec.scale.Transform; 
 
 import javax.imageio.ImageIO;
 
@@ -26,8 +28,12 @@ import com.github.sarxos.webcam.WebcamResolution;
 import com.github.sarxos.webcam.WebcamUtils;
 import com.github.sarxos.webcam.util.ImageUtils;
 import com.xuggle.xuggler.IStreamCoder;
-
+import org.jcodec.codecs.h264.H264Encoder;
+import org.jcodec.common.model.ColorSpace;
+import org.jcodec.common.model.Picture;
+import org.jcodec.scale.*;
 import io.netty.buffer.ByteBuf;
+
 
 import com.xuggle.mediatool.IMediaWriter;
 
@@ -38,10 +44,13 @@ import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IPixelFormat;
 import com.xuggle.xuggler.IStreamCoder.Direction;
 
+import org.geotoolkit.*;
+
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.group.ChannelGroup;
 import org.jboss.netty.channel.group.DefaultChannelGroup;
 
+import org.geotoolkit.display3d.utils.TransformRGBtoYUV420;
 public class CameraFrameSource {
 	
 		protected final IStreamCoder iStreamCoder = IStreamCoder.make(Direction.ENCODING, ICodec.ID.CODEC_ID_H264);
@@ -57,6 +66,7 @@ public class CameraFrameSource {
         Webcam webcam = null;
         H264StreamEncoder h264Encoder = null;
         protected final Dimension dimension = null;
+
 	
 	public CameraFrameSource(final CameraMediaSourceConfiguration configuration, Webcam webcam) {
         this.configuration = configuration;
@@ -115,22 +125,74 @@ public class CameraFrameSource {
         }
     }
     
+    private BufferedImage convertToType(BufferedImage sourceImage, int targetType) { 
+        BufferedImage image; 
+        // if the source image is already the target type, return the source image 
+        if (sourceImage.getType() == targetType) { 
+            image = sourceImage; 
+        } 
+        // otherwise create a new image of the target type and draw the new image 
+        else { 
+            image = new BufferedImage(sourceImage.getWidth(), sourceImage.getHeight(), targetType); 
+            image.getGraphics().drawImage(sourceImage, 0, 0, null); 
+        } 
+        return image; 
+    } 
+    
+    public ByteBuffer encodeImage(BufferedImage bi) throws IOException { 
+        Picture toEncode = null;
+        
+        int width = bi.getWidth();
+        int height = bi.getHeight();
+        
+    	if (toEncode == null) { 
+            toEncode = Picture.create(width, height, ColorSpace.YUV420); 
+        } 
+        final Transform transform =  new TransformRGBtoYUV420(0,0);
+        
+        ByteBuffer _out = null; 
+        final H264Encoder encoder = new H264Encoder(); 
+ 
+        // Perform conversion 
+        for (int i = 0; i < 3; i++) 
+            Arrays.fill(toEncode.getData()[i], 0); 
+        Picture src = AWTUtil.fromBufferedImage(bi);
+        src.getPlaneData(0);
+        toEncode.getPlaneData(0);
+        transform.transform(src, toEncode); 
+ 
+        // Encode image into H.264 frame, the result is stored in '_out' buffer and return
+        _out = ByteBuffer.allocate(width * height * 6); 
+        _out.clear(); 
+        ByteBuffer result = encoder.encodeFrame(toEncode, _out);
+        
+        
+        return result;
+ 
+
+    } 
+    
     private ByteBuffer createKinesisVideoFrameFromCamera(final long index) throws IOException {
 
     	BufferedImage image = webcam.getImage();
     	ChannelBuffer channelBuffer;
+    	
+    	
 		try {
-			Object msg = h264Encoder.encode(image);
-			if (msg != null) {
+			/* Object msg = h264Encoder.encode(image);
+			if (!msg.equals(null)) {
 				channelGroup.write(msg);
-				channelBuffer = (ChannelBuffer)msg;
+				channelBuffer = (ChannelBuffer) msg;
 				return channelBuffer.toByteBuffer();
-			}
+			}*/
+			ByteBuffer resultant = encodeImage(image);
+			return resultant;
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} 
+			
 		
     	return null;
 
