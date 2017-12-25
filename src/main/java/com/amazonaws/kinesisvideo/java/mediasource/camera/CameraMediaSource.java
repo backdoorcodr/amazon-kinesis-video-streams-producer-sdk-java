@@ -91,7 +91,9 @@ public class CameraMediaSource implements MediaSource {
             public void onFrameDataAvailable(final ByteBuffer data) {
                 final long currentTimeMs = System.currentTimeMillis();
 
-                final int flags = FRAME_FLAG_KEY_FRAME;
+                final int flags = isKeyFrame() 
+                		? FRAME_FLAG_KEY_FRAME
+                		: FRAME_FLAG_NONE;
 
                 if (data != null) {
                     final KinesisVideoFrame frame = new KinesisVideoFrame(
@@ -126,7 +128,7 @@ public class CameraMediaSource implements MediaSource {
 
     
     private boolean isKeyFrame() {
-        return frameIndex % 22 == 0;
+        return frameIndex % 19 == 0;
     }
     
 	@Override

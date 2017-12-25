@@ -27,6 +27,7 @@ import com.github.sarxos.webcam.util.ImageUtils;
  */
 public final class DemoAppMain {
     private static final String STREAM_NAME = "my-stream";
+    private static final int FPS_19 = 19;
     private static final int FPS_22 = 22;
     private static final int FPS_24 = 24;
     private static final int FPS_30 = 30;
@@ -43,9 +44,10 @@ public final class DemoAppMain {
         try {
             // create Kinesis Video high level client
         	final KinesisVideoClient kinesisVideoClient = KinesisVideoJavaClientFactory
-                    .createKinesisVideoClient(new ProfileCredentialsProvider("default"));
+	                   .createKinesisVideoClient(Regions.DEFAULT_REGION ,new ProfileCredentialsProvider("default"));
 
-            // create a media source. this class produces the data and pushes it into
+        	
+        	// create a media source. this class produces the data and pushes it into
             // Kinesis Video Producer lower level components
             final MediaSource bytesMediaSource = createCameraMediaSource();
 
@@ -85,12 +87,16 @@ public final class DemoAppMain {
     	
     	Webcam webcam = Webcam.getDefault();
     	
-    	byte[] cpd = { 0x01, 0x42, 0x00, 0x20, (byte) 0xff, (byte) 0xe1, 0x00, 0x23, 0x27, 0x42, 0x00, 0x20, (byte) 0x89, (byte) 0x8b, 0x60, 0x28, 0x02, (byte) 0xdd, (byte) 0x80, (byte) 0x9e, 0x00, 0x00, 0x4e, 0x20, 0x00, 0x0f, 0x42, 0x41, (byte) 0xc0, (byte) 0xc0, 0x01, 0x77, 0x00, 0x00, 0x5d, (byte) 0xc1, 0x7b, (byte) 0xdf, 0x07, (byte) 0xc2, 0x21, 0x1b, (byte) 0x80, 0x01, 0x00, 0x04, 0x28, (byte) 0xce, 0x1f, 0x20 };
+    	byte[] cpd = { 0x01, 0x42, 0x00, 0x20, (byte) 0xff, (byte) 0xe1, 0x00, 0x23, 0x27, 0x42, 0x00, 0x20, 
+    			(byte) 0x89, (byte) 0x8b, 0x60, 0x28, 0x02, (byte) 0xdd, (byte) 0x80, (byte) 0x9e, 0x00, 0x00, 
+    			0x4e, 0x20, 0x00, 0x0f, 0x42, 0x41, (byte) 0xc0, (byte) 0xc0, 0x01, 0x77, 0x00, 0x00, 0x5d, 
+    			(byte) 0xc1, 0x7b, (byte) 0xdf, 0x07, (byte) 0xc2, 0x21, 0x1b, (byte) 0x80, 0x01, 0x00, 0x04, 
+    			0x28, (byte) 0xce, 0x1f, 0x20 };
 
     	
 		final CameraMediaSourceConfiguration configuration =
     			new CameraMediaSourceConfiguration.Builder()
-    			.withFrameRate(FPS_22)
+    			.withFrameRate(FPS_19)
     			.withRetentionPeriodInHours(1)
     			.withCameraId("/dev/video0")
     			.withIsEncoderHardwareAccelerated(false)
